@@ -178,7 +178,7 @@ function EmptyState({emoji,title,subtitle,cta,onCta}){
 
 // ─── API CALL ─────────────────────────────────────────────────────────────────
 async function callClaude(system,userMsg,maxTokens=400){
-  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":"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","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:maxTokens,system,messages:[{role:"user",content:userMsg}]})});
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:maxTokens,system,messages:[{role:"user",content:userMsg}]})});
   const d=await res.json();return d.content?.find(b=>b.type==="text")?.text||"";
 }
 async function callClaudeJSON(system,userMsg,maxTokens=1000){
@@ -330,14 +330,15 @@ function MoiView({name,tasks,onCheck,onAdd,moodToday,onMood,cyclePhase,onNavigat
       )}
 
       {/* Tâches urgentes */}
-      {urgentTasks.length>0&&(
+      {tasks.filter(t=>t.category==="urgent").length>0&&(
         <Card style={{borderLeft:`3px solid ${C.coral}`}}>
           <Label style={{color:C.coral}}>🔥 Priorités du jour</Label>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {urgentTasks.slice(0,3).map(t=>(
-              <div key={t.id} style={{display:"flex",gap:10,alignItems:"center"}}>
-                <CheckBox done={t.done} onToggle={()=>onCheck(t.id)} color={C.coral}/>
-                <p style={{fontSize:14,color:C.charcoal,flex:1}}>{t.text}</p>
+            {tasks.filter(t=>t.category==="urgent").slice(0,3).map(t=>(
+              <div key={t.id} style={{display:"flex",gap:10,alignItems:"center",padding:"6px 8px",borderRadius:10,background:t.done?C.sagePale:"transparent",transition:"background .3s"}}>
+                <CheckBox done={t.done} onToggle={()=>{onCheck(t.id);if(!t.done)showToast("✅ Tâche faite !");}} color={t.done?C.sage:C.coral}/>
+                <p style={{fontSize:14,color:t.done?C.sage:C.charcoal,flex:1,textDecoration:t.done?"line-through":"none",transition:"all .3s"}}>{t.text}</p>
+                {t.done&&<span style={{fontSize:14}}>✅</span>}
               </div>
             ))}
           </div>
@@ -357,7 +358,7 @@ function MoiView({name,tasks,onCheck,onAdd,moodToday,onMood,cyclePhase,onNavigat
       </Card>
 
       {/* Toutes les tâches */}
-      {tasks.filter(t=>!t.done).length>0?(
+      {tasks.length>0?(
         <Card>
           <Label>Toutes les tâches</Label>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -383,6 +384,26 @@ function MoiView({name,tasks,onCheck,onAdd,moodToday,onMood,cyclePhase,onNavigat
               );
             })}
           </div>
+
+          {/* Tâches accomplies */}
+          {tasks.filter(t=>t.done).length>0&&(
+            <div style={{marginTop:16,borderTop:`1px solid ${C.warm}`,paddingTop:14}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                <span style={{fontSize:14}}>✨</span>
+                <p style={{fontSize:12,fontWeight:600,color:C.sage,textTransform:"uppercase",letterSpacing:".05em",margin:0}}>Accompli aujourd'hui</p>
+                <span style={{background:C.sagePale,color:C.sage,borderRadius:20,padding:"1px 8px",fontSize:11,fontWeight:600}}>{tasks.filter(t=>t.done).length}</span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {tasks.filter(t=>t.done).map(t=>(
+                  <div key={t.id} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 12px",background:C.sagePale,borderRadius:12,transition:"all .3s"}}>
+                    <CheckBox done={true} onToggle={()=>onCheck(t.id)} color={C.sage}/>
+                    <p style={{fontSize:13,color:C.sage,textDecoration:"line-through",flex:1,lineHeight:1.4}}>{t.text}</p>
+                    <span style={{fontSize:16}}>✅</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
       ):(
         <EmptyState emoji="🌿" title="Aucune tâche pour l'instant" subtitle="Vide ta tête en vocal pour laisser l'IA tout organiser pour toi." cta="Vider ma tête 🧠" onCta={()=>onNavigate("mental")}/>
